@@ -1,0 +1,25 @@
+{
+  "name": "@a2s/server-api",
+  "version": "0.3.1",
+  "private": true,
+  "description": "A2S 多 Agent 统一中转 API 与 Web 控制台",
+  "license": "MIT",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "sim": "node sim/dsh-sim.js",
+    "test:mobile-smoke": "node scripts/mobile-api-smoke.js",
+    "selftest": "node scripts/selftest.js",
+    "test:transcript": "node scripts/transcript-test.js",
+    "test": "node --test scripts/relay-test.js scripts/multi-agent-key.test.js scripts/agent-selection.test.js scripts/install-script.test.js && node scripts/transcript-test.js && node scripts/selftest.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "marked": "^15.0.12",
+    "qrcode": "^1.5.4",
+    "ws": "^8.21.3"
+  }
+}
