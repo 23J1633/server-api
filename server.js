@@ -265,6 +265,15 @@ server.on('upgrade', (req, socket, head) => {
 
 // ---------------------------------------------------------------- 启动
 
+server.on('error', (err) => {
+  if (err?.code === 'EADDRINUSE') {
+    log.error(`[server] 端口 ${cfg.host}:${cfg.port} 已被占用，请停止占用进程或修改 A2S_SERVER_PORT`);
+  } else {
+    log.error(`[server] 启动失败：${err?.message || err}`);
+  }
+  process.exit(1);
+});
+
 server.listen(cfg.port, cfg.host, () => {
   const scheme = tls ? 'wss' : 'ws';
   const adminKey = keystore.adminKey();

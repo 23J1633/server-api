@@ -87,7 +87,7 @@ npm start
 Ubuntu、Debian、RHEL、Rocky Linux、AlmaLinux 等使用 systemd 的 Linux 服务器可直接执行：
 
 ```bash
-set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error https://raw.githubusercontent.com/23J1633/server-api/main/install.sh | sudo bash
+sudo bash -c 'set -Eeuo pipefail; t="$(mktemp)"; trap "rm -f \\\"$t\\\"" EXIT; for u in https://raw.githubusercontent.com/23J1633/server-api/main/install.sh https://github.com/23J1633/server-api/raw/refs/heads/main/install.sh https://cdn.jsdelivr.net/gh/23J1633/server-api@main/install.sh https://gcore.jsdelivr.net/gh/23J1633/server-api@main/install.sh https://fastly.jsdelivr.net/gh/23J1633/server-api@main/install.sh; do echo "[A2S] bootstrap: $u" >&2; if curl -4fL --connect-timeout 15 --max-time 120 --show-error --retry 2 --retry-delay 2 -o "$t" "$u" && bash -n "$t"; then bash "$t"; exit $?; fi; done; echo "[A2S] ERROR: no installer source is reachable" >&2; exit 1'
 ```
 
 该脚本会自动完成 Node.js 22 检查/安装、GitHub 源码下载、生产依赖安装、低权限 `a2s` 账号、systemd 自启、启动健康检查和失败回滚。重复执行同一条命令即可升级；`/var/lib/a2s-server` 中的数据、已登记设备 key 和 `admin-key.txt` 都会保留。成功后终端会显示大型 A2S 字符标识、访问地址、管理员密钥明文、密钥文件位置和维护命令；管理员密钥属于服务器所有者凭据，请勿把终端输出发给不受信任的人。
@@ -98,6 +98,21 @@ set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error http
 set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error https://raw.githubusercontent.com/23J1633/server-api/main/install.sh \
   | sudo env A2S_SERVER_HOST=0.0.0.0 A2S_SERVER_PORT=50443 bash
 ```
+
+如果默认端口已被占用，交互式安装会提供三个选项：关闭占用进程并继续使用原端口、保留原进程并自动选择新端口、取消安装。没有可用 TTY 的无人值守安装默认保留原进程并选择新端口；也可以显式指定：
+
+```bash
+# 停止占用 50443 的进程并继续使用原端口（可能中断其他服务）
+sudo env A2S_PORT_CONFLICT_ACTION=stop bash /tmp/a2s-install.sh
+
+# 保留占用进程，自动选择 50444 起的第一个空闲端口
+sudo env A2S_PORT_CONFLICT_ACTION=new bash /tmp/a2s-install.sh
+
+# 发现冲突立即退出
+sudo env A2S_PORT_CONFLICT_ACTION=abort bash /tmp/a2s-install.sh
+```
+
+下载阶段会依次尝试 GitHub API、GitHub archive 和 codeload；npm 依赖会尝试官方 registry 与公开镜像，并在日志中显示当前来源。所有失败都会保留原版本并输出具体诊断。完全没有网络时，先把包含 `node_modules` 的离线归档复制到服务器，再设置 `A2S_ARCHIVE_PATH=/path/server-api-offline.tar.gz A2S_OFFLINE=1`；远程安装不可能在零网络条件下自行取得文件。
 
 自定义配置与预检：
 
@@ -495,7 +510,7 @@ server-api/
 On a systemd-based Ubuntu, Debian, RHEL, Rocky Linux, or AlmaLinux server:
 
 ```bash
-set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error https://raw.githubusercontent.com/23J1633/server-api/main/install.sh | sudo bash
+sudo bash -c 'set -Eeuo pipefail; t="$(mktemp)"; trap "rm -f \\\"$t\\\"" EXIT; for u in https://raw.githubusercontent.com/23J1633/server-api/main/install.sh https://github.com/23J1633/server-api/raw/refs/heads/main/install.sh https://cdn.jsdelivr.net/gh/23J1633/server-api@main/install.sh https://gcore.jsdelivr.net/gh/23J1633/server-api@main/install.sh https://fastly.jsdelivr.net/gh/23J1633/server-api@main/install.sh; do echo "[A2S] bootstrap: $u" >&2; if curl -4fL --connect-timeout 15 --max-time 120 --show-error --retry 2 --retry-delay 2 -o "$t" "$u" && bash -n "$t"; then bash "$t"; exit $?; fi; done; echo "[A2S] ERROR: no installer source is reachable" >&2; exit 1'
 ```
 
 The installer validates/provisions Node.js 22, downloads the GitHub release, installs production dependencies, creates the restricted `a2s` account, installs/enables a restartable systemd unit, performs a health check, and rolls back a failed release. Re-run the same command to upgrade while preserving `/var/lib/a2s-server`.
@@ -503,6 +518,21 @@ The installer validates/provisions Node.js 22, downloads the GitHub release, ins
 After success, the terminal prints a large A2S banner, console and Agent endpoints, the complete administrator key, its file path, status/log commands, and upgrade/uninstall commands. Treat that terminal output as sensitive because the administrator key can manage all registered devices.
 
 The default service listens on `127.0.0.1:50443` over HTTP for use behind Nginx, Caddy, or 1Panel TLS termination. Set `A2S_SERVER_HOST=0.0.0.0` only when the network boundary is understood; never expose plaintext control traffic to the public Internet.
+
+When the requested port is occupied, an interactive install offers three choices: stop the process and keep the port, preserve it and select a new free port, or abort. Installs without a usable TTY preserve the existing process and select a new port by default. Set the action explicitly when automation needs a deterministic result:
+
+```bash
+# Stop the process using 50443 and keep the original port (may interrupt another service)
+sudo env A2S_PORT_CONFLICT_ACTION=stop bash /tmp/a2s-install.sh
+
+# Preserve it and select the first free port from 50444 onward
+sudo env A2S_PORT_CONFLICT_ACTION=new bash /tmp/a2s-install.sh
+
+# Abort immediately on a conflict
+sudo env A2S_PORT_CONFLICT_ACTION=abort bash /tmp/a2s-install.sh
+```
+
+Source download automatically tries the GitHub API, GitHub archive, and codeload endpoints; npm dependencies try the official registry and a public fallback, with the selected source shown in the log. Failed upgrades keep the previous release and print diagnostics. For a completely offline server, copy an archive that already contains `node_modules` and set `A2S_ARCHIVE_PATH=/path/server-api-offline.tar.gz A2S_OFFLINE=1`; no remote installer can fetch files with zero network access.
 
 If the server must reach GitHub through a proxy, pass the proxy environment to both `curl` and the installer (replace the placeholder with the real endpoint):
 

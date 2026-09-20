@@ -8,17 +8,23 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const INSTALLER = path.join(ROOT, 'install.sh')
+const SERVER = path.join(ROOT, 'server.js')
 
 test('one-line installer preserves data and configures a restartable systemd service', async () => {
   const source = await readFile(INSTALLER, 'utf8')
   assert.equal(source.includes('\r'), false, 'installer must use LF line endings')
   for (const required of [
     'https://github.com/23J1633/server-api',
+    'https://cdn.jsdelivr.net/gh/',
     'A2S_SERVER_DATA_DIR',
+    'A2S_PORT_CONFLICT_ACTION',
+    'archive_urls',
+    'registry.npmmirror.com',
     'npm --prefix "$stage" ci --omit=dev',
     'chmod 0755 "$stage"',
-    'set -o pipefail; curl -fL --connect-timeout 15 --max-time 120 --show-error',
-    'Restart=always',
+    'curl -4fL --connect-timeout 15 --max-time 120 --show-error',
+    'Restart=on-failure',
+    'StartLimitBurst=5',
     'systemctl enable',
     'wait_for_health',
     'Deployment rolled back',
@@ -28,6 +34,21 @@ test('one-line installer preserves data and configures a restartable systemd ser
     'systemctl disable --now',
     'Preserved keys',
   ]) assert.ok(source.includes(required), `missing installer behavior: ${required}`)
+})
+
+test('port conflicts offer stop, new-port, and abort choices', async () => {
+  const source = await readFile(INSTALLER, 'utf8')
+  assert.match(source, /Stop the process\(es\).*keep this port/)
+  assert.match(source, /select a new port/)
+  assert.match(source, /Abort installation/)
+  assert.match(source, /A2S_PORT_CONFLICT_ACTION.*stop, new, or abort/)
+})
+
+test('server startup reports port conflicts without an unhandled error stack', async () => {
+  const source = await readFile(SERVER, 'utf8')
+  assert.match(source, /server\.on\('error'/)
+  assert.match(source, /EADDRINUSE/)
+  assert.match(source, /端口 .*已被占用/)
 })
 
 test('one-line installer passes Bash parsing and dry-run validation', async (context) => {
