@@ -87,7 +87,7 @@ npm start
 Ubuntu、Debian、RHEL、Rocky Linux、AlmaLinux 等使用 systemd 的 Linux 服务器可直接执行：
 
 ```bash
-sudo bash -c 'set -Eeuo pipefail; t="$(mktemp)"; trap "rm -f \\\"$t\\\"" EXIT; for u in https://raw.githubusercontent.com/23J1633/server-api/main/install.sh https://github.com/23J1633/server-api/raw/refs/heads/main/install.sh https://cdn.jsdelivr.net/gh/23J1633/server-api@main/install.sh https://gcore.jsdelivr.net/gh/23J1633/server-api@main/install.sh https://fastly.jsdelivr.net/gh/23J1633/server-api@main/install.sh; do echo "[A2S] bootstrap: $u" >&2; if curl -4fL --connect-timeout 15 --max-time 120 --show-error --retry 2 --retry-delay 2 -o "$t" "$u" && bash -n "$t"; then bash "$t"; exit $?; fi; done; echo "[A2S] ERROR: no installer source is reachable" >&2; exit 1'
+sudo bash -c 'set -Eeuo pipefail; t="$(mktemp)"; trap "rm -f \\\"$t\\\"" EXIT; for u in https://raw.githubusercontent.com/23J1633/server-api/main/install.sh https://github.com/23J1633/server-api/raw/refs/heads/main/install.sh https://cdn.jsdelivr.net/gh/23J1633/server-api@v0.4.1/install.sh https://gcore.jsdelivr.net/gh/23J1633/server-api@v0.4.1/install.sh https://fastly.jsdelivr.net/gh/23J1633/server-api@v0.4.1/install.sh; do echo "[A2S] bootstrap: $u" >&2; if curl -4fL --connect-timeout 15 --max-time 120 --show-error --retry 2 --retry-delay 2 -o "$t" "$u" && bash -n "$t"; then bash "$t"; exit $?; fi; done; echo "[A2S] ERROR: no installer source is reachable" >&2; exit 1'
 ```
 
 该脚本会自动完成 Node.js 22 检查/安装、GitHub 源码下载、生产依赖安装、低权限 `a2s` 账号、systemd 自启、启动健康检查和失败回滚。重复执行同一条命令即可升级；`/var/lib/a2s-server` 中的数据、已登记设备 key 和 `admin-key.txt` 都会保留。成功后终端会显示大型 A2S 字符标识、访问地址、管理员密钥明文、密钥文件位置和维护命令；管理员密钥属于服务器所有者凭据，请勿把终端输出发给不受信任的人。
@@ -510,7 +510,7 @@ server-api/
 On a systemd-based Ubuntu, Debian, RHEL, Rocky Linux, or AlmaLinux server:
 
 ```bash
-sudo bash -c 'set -Eeuo pipefail; t="$(mktemp)"; trap "rm -f \\\"$t\\\"" EXIT; for u in https://raw.githubusercontent.com/23J1633/server-api/main/install.sh https://github.com/23J1633/server-api/raw/refs/heads/main/install.sh https://cdn.jsdelivr.net/gh/23J1633/server-api@main/install.sh https://gcore.jsdelivr.net/gh/23J1633/server-api@main/install.sh https://fastly.jsdelivr.net/gh/23J1633/server-api@main/install.sh; do echo "[A2S] bootstrap: $u" >&2; if curl -4fL --connect-timeout 15 --max-time 120 --show-error --retry 2 --retry-delay 2 -o "$t" "$u" && bash -n "$t"; then bash "$t"; exit $?; fi; done; echo "[A2S] ERROR: no installer source is reachable" >&2; exit 1'
+sudo bash -c 'set -Eeuo pipefail; t="$(mktemp)"; trap "rm -f \\\"$t\\\"" EXIT; for u in https://raw.githubusercontent.com/23J1633/server-api/main/install.sh https://github.com/23J1633/server-api/raw/refs/heads/main/install.sh https://cdn.jsdelivr.net/gh/23J1633/server-api@v0.4.1/install.sh https://gcore.jsdelivr.net/gh/23J1633/server-api@v0.4.1/install.sh https://fastly.jsdelivr.net/gh/23J1633/server-api@v0.4.1/install.sh; do echo "[A2S] bootstrap: $u" >&2; if curl -4fL --connect-timeout 15 --max-time 120 --show-error --retry 2 --retry-delay 2 -o "$t" "$u" && bash -n "$t"; then bash "$t"; exit $?; fi; done; echo "[A2S] ERROR: no installer source is reachable" >&2; exit 1'
 ```
 
 The installer validates/provisions Node.js 22, downloads the GitHub release, installs production dependencies, creates the restricted `a2s` account, installs/enables a restartable systemd unit, performs a health check, and rolls back a failed release. Re-run the same command to upgrade while preserving `/var/lib/a2s-server`.

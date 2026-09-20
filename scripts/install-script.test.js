@@ -15,7 +15,7 @@ test('one-line installer preserves data and configures a restartable systemd ser
   assert.equal(source.includes('\r'), false, 'installer must use LF line endings')
   for (const required of [
     'https://github.com/23J1633/server-api',
-    'https://cdn.jsdelivr.net/gh/',
+    'https://github.com/%s/raw/refs/heads/%s/install.sh',
     'A2S_SERVER_DATA_DIR',
     'A2S_PORT_CONFLICT_ACTION',
     'archive_urls',

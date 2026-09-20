@@ -630,7 +630,7 @@ raw_installer_url() {
   local clean slug
   clean="${REPOSITORY%.git}"
   slug="${clean#https://github.com/}"
-  printf 'https://cdn.jsdelivr.net/gh/%s@%s/install.sh' "$slug" "$REF"
+  printf 'https://github.com/%s/raw/refs/heads/%s/install.sh' "$slug" "$REF"
 }
 
 finish() {
