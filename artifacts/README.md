@@ -16,9 +16,6 @@ A2S 按组件拆分为以下同系列仓库，所有者均为 `23J1633`。/ A2S 
 | dsh2server | DeepSeek Harness 插件 / DeepSeek Harness plugin | [23J1633/dsh2server](https://www.github.com/23J1633/dsh2server) |
 | server-api | 中转服务与 Web 控制台 / relay server and Web console | [23J1633/server-api](https://www.github.com/23J1633/server-api) |
 | a2s_app | Flutter Android 客户端 / Flutter Android client | [23J1633/a2s_app](https://www.github.com/23J1633/a2s_app) |
-| scripts | 跨仓库验收脚本 / cross-repository acceptance scripts | [23J1633/scripts](https://www.github.com/23J1633/scripts) |
-| ICON | A2S 品牌源图 / A2S brand source artwork | [23J1633/ICON](https://www.github.com/23J1633/ICON) |
-| artifacts | 脱敏交付验证产物 / sanitized delivery evidence | [23J1633/artifacts](https://www.github.com/23J1633/artifacts) |
 
 - `ui-a2s-login.png`：未填写管理密钥时的 A2S 默认品牌标识与登录设置页。
 - `ui-claude-brand.png`、`ui-codex-brand.png`、`ui-dsh-brand.png`：真实服务连接下切换三个 Agent 后的动态品牌图标；左上角、中央欢迎区、标题和输入提示会一起切换。
