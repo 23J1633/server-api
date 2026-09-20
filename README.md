@@ -92,7 +92,9 @@ sudo bash -c 'set -Eeuo pipefail; t="$(mktemp)"; trap "rm -f \\\"$t\\\"" EXIT; f
 
 该脚本会自动完成 Node.js 22 检查/安装、GitHub 源码下载、生产依赖安装、低权限 `a2s` 账号、systemd 自启、启动健康检查和失败回滚。重复执行同一条命令即可升级；`/var/lib/a2s-server` 中的数据、已登记设备 key 和 `admin-key.txt` 都会保留。成功后终端会显示大型 A2S 字符标识、访问地址、管理员密钥明文、密钥文件位置和维护命令；管理员密钥属于服务器所有者凭据，请勿把终端输出发给不受信任的人。
 
-默认只监听 `127.0.0.1:50443` 明文 HTTP，用于放在 Nginx、Caddy 或 1Panel HTTPS/WSS 反向代理后面。如果需要直接监听内网地址：
+重要：一键安装后的 A2S 服务只监听 `127.0.0.1:50443` 明文 HTTP。要使用公网 `https://` / `wss://`，必须在 Nginx、OpenResty、Caddy 或 1Panel 中配置反向代理并由代理终止 TLS；不要把 `https://域名:50443` 直接指向 A2S 后端。证书配置在反向代理中完成，A2S 后端不负责申请或读取面板证书。反向代理目标保持为 `http://127.0.0.1:50443`。
+
+如果需要让反向代理访问其他内网地址，再显式调整监听地址：
 
 ```bash
 set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error https://raw.githubusercontent.com/23J1633/server-api/main/install.sh \
@@ -163,12 +165,44 @@ set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error http
 
 > 只有在 `server-api` 仓库已公开且 `main` 分支包含 `install.sh` 后，上述 raw GitHub 命令才能被新服务器访问。
 
-### 手工部署
+### HTTPS/WSS 反向代理（必需）
 
-公网必须使用 HTTPS/WSS。两种推荐方式：
+公网部署必须由反向代理提供 HTTPS/WSS，A2S Node 服务保持回环 HTTP。证书路径、域名、续期和 443/自定义 HTTPS 端口都配置在反向代理或 1Panel 网站中；后端端口 `50443` 不应暴露到公网。
 
-1. 在 `config.json` 的 `tls.cert` / `tls.key` 中配置证书，让 Node 直接提供 TLS；
-2. Node 只监听受保护的回环/内网 HTTP，由 Nginx、Caddy 或 1Panel 反向代理并终止 TLS。
+Nginx/OpenResty 示例（证书路径替换为你已有的证书）：
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name example.com;
+    ssl_certificate     /etc/letsencrypt/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:50443;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+        proxy_buffering off;
+    }
+}
+```
+
+Caddy 示例（Caddy 自动管理证书和 WebSocket 升级）：
+
+```caddy
+example.com {
+    reverse_proxy 127.0.0.1:50443
+}
+```
+
+在 1Panel 中选择“网站 → 反向代理”，目标填写 `http://127.0.0.1:50443`，绑定已有证书，开启 WebSocket/长连接，并确保 `/`、`/a2s-api/`（以及需要兼容旧客户端时的 `/dsh-api/`）都转发。客户端端点填写 `https://example.com/a2s-api`，WebSocket 端点由插件自动派生为 `/a2s-api/ws`。
 
 直接运行：
 
@@ -205,7 +239,7 @@ RestartSec=3
 WantedBy=multi-user.target
 ```
 
-反向代理必须允许 WebSocket upgrade，并关闭 SSE/长轮询响应缓冲。至少代理 `/` 和 `/a2s-api/`；如需旧客户端，再代理 `/dsh-api/`。
+反向代理必须允许 WebSocket upgrade，并关闭 SSE/长轮询响应缓冲；同时把读写超时设置为至少 600 秒，避免长任务或断线恢复期间被代理提前关闭。
 
 ## 配置
 
@@ -217,8 +251,8 @@ WantedBy=multi-user.target
 | `port` | `50443` | 监听端口 |
 | `basePath` | `/a2s-api` | 统一 API 基路径 |
 | `legacyBasePaths` | `[/dsh-api]` | 完整兼容别名 |
-| `tls.cert` / `tls.key` | 1Panel 示例路径 | 证书与私钥；不可读时退回 HTTP |
-| `tls.watchMs` | `600000` | 证书热重载检查周期；0 关闭 |
+| `tls.cert` / `tls.key` | 空（反向代理部署） | 仅手工直连 Node TLS 模式使用；一键安装不会写入面板证书路径，公网请使用反向代理 |
+| `tls.watchMs` | `600000` | 手工直连 Node TLS 模式的证书热重载周期；反向代理部署由代理负责续期 |
 | `dataDir` | `~/.a2s-server` | key、配置、日志与归档索引目录 |
 | `eventBufferSize` | `2000` | 每实例内存事件窗口 |
 | `maxPayloadBytes` | `1048576` | 服务器单帧负载上限 |
@@ -517,7 +551,42 @@ The installer validates/provisions Node.js 22, downloads the GitHub release, ins
 
 After success, the terminal prints a large A2S banner, console and Agent endpoints, the complete administrator key, its file path, status/log commands, and upgrade/uninstall commands. Treat that terminal output as sensitive because the administrator key can manage all registered devices.
 
-The default service listens on `127.0.0.1:50443` over HTTP for use behind Nginx, Caddy, or 1Panel TLS termination. Set `A2S_SERVER_HOST=0.0.0.0` only when the network boundary is understood; never expose plaintext control traffic to the public Internet.
+Important: the one-line installer runs A2S on `127.0.0.1:50443` over plain HTTP. Public `https://` / `wss://` access **requires a reverse proxy** (Nginx, OpenResty, Caddy, or 1Panel) to terminate TLS; do not point `https://your-domain:50443` directly at the A2S backend. Configure certificates, renewal, and the public HTTPS port in the proxy, and keep backend port `50443` private. Set `A2S_SERVER_HOST=0.0.0.0` only when the proxy is on another host or the network boundary is understood.
+
+Nginx/OpenResty example (replace the certificate paths):
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name example.com;
+    ssl_certificate     /etc/letsencrypt/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:50443;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 600s;
+        proxy_send_timeout 600s;
+        proxy_buffering off;
+    }
+}
+```
+
+Caddy example (Caddy manages certificates and WebSocket upgrades):
+
+```caddy
+example.com {
+    reverse_proxy 127.0.0.1:50443
+}
+```
+
+In 1Panel, create a reverse-proxy site targeting `http://127.0.0.1:50443`, bind the existing certificate, enable WebSocket/long-lived connections, and proxy `/`, `/a2s-api/` (and `/dsh-api/` if legacy clients are needed). Configure clients with `https://example.com/a2s-api`; the Agent WebSocket path is `/a2s-api/ws`.
 
 When the requested port is occupied, an interactive install offers three choices: stop the process and keep the port, preserve it and select a new free port, or abort. Installs without a usable TTY preserve the existing process and select a new port by default. Set the action explicitly when automation needs a deterministic result:
 
@@ -572,11 +641,11 @@ A2S_SERVER_DATA_DIR="$PWD/.runtime-local" \
 npm start
 ```
 
-The console is at `http://127.0.0.1:50443/`, health at `/a2s-api/health`, the Agent endpoint at `/a2s-api`, and WebSocket at `/a2s-api/ws`. First start creates `admin-key.txt`, `keys.json`, and `config.json` in the data directory.
+For local development the console is at `http://127.0.0.1:50443/`, health at `/a2s-api/health`, the Agent endpoint at `/a2s-api`, and WebSocket at `/a2s-api/ws`. First start creates `admin-key.txt`, `keys.json`, and `config.json` in the data directory.
 
 ### Configuration and credentials
 
-Configuration loads in this order: defaults, data-directory `config.json`, then environment overrides. Common variables are `A2S_SERVER_CONFIG`, `A2S_SERVER_DATA_DIR`, `A2S_SERVER_HOST`, `A2S_SERVER_PORT`, `A2S_SERVER_NO_TLS`, and `A2S_SERVER_LOG_LEVEL`. TLS certificate/key paths live in `config.json`; certificates are hot-reloaded when enabled.
+Configuration loads in this order: defaults, data-directory `config.json`, then environment overrides. Common variables are `A2S_SERVER_CONFIG`, `A2S_SERVER_DATA_DIR`, `A2S_SERVER_HOST`, `A2S_SERVER_PORT`, `A2S_SERVER_NO_TLS`, and `A2S_SERVER_LOG_LEVEL`. For the supported public deployment, TLS certificates live in the reverse proxy; the one-line installer does not read panel certificate paths. The optional `tls.cert` / `tls.key` fields are for advanced manual direct-Node TLS only, with certificate hot reload when enabled.
 
 The administrator key authorizes server management and must stay on the server or in the server owner's browser session. Device keys authorize one workstation and may be shared by that workstation's three Agents. Mobile pairing issues a distinct, revocable mobile credential; it does not copy the administrator key into the app.
 
