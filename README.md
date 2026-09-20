@@ -95,7 +95,7 @@ set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error http
 默认只监听 `127.0.0.1:50443` 明文 HTTP，用于放在 Nginx、Caddy 或 1Panel HTTPS/WSS 反向代理后面。如果需要直接监听内网地址：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/23J1633/server-api/main/install.sh \
+set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error https://raw.githubusercontent.com/23J1633/server-api/main/install.sh \
   | sudo env A2S_SERVER_HOST=0.0.0.0 A2S_SERVER_PORT=50443 bash
 ```
 
@@ -103,10 +103,10 @@ curl -fsSL https://raw.githubusercontent.com/23J1633/server-api/main/install.sh 
 
 ```bash
 # 只输出计划，不修改服务器
-curl -fsSL https://raw.githubusercontent.com/23J1633/server-api/main/install.sh | bash -s -- --dry-run
+set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error https://raw.githubusercontent.com/23J1633/server-api/main/install.sh | bash -s -- --dry-run
 
 # 重写已存在的环境文件（普通升级默认保留它）
-curl -fsSL https://raw.githubusercontent.com/23J1633/server-api/main/install.sh \
+set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error https://raw.githubusercontent.com/23J1633/server-api/main/install.sh \
   | sudo env A2S_RECONFIGURE=1 A2S_SERVER_HOST=127.0.0.1 A2S_SERVER_PORT=50443 bash
 ```
 
@@ -133,14 +133,14 @@ SOCKS5 代理将三个值改为 `socks5h://PROXY_HOST:PROXY_PORT`。不要把包
 卸载服务和程序但保留设备数据、管理员密钥及环境配置：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/23J1633/server-api/main/install.sh \
+set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error https://raw.githubusercontent.com/23J1633/server-api/main/install.sh \
   | sudo bash -s -- --uninstall
 ```
 
 只有确定不再需要任何设备登记、归档和管理员密钥时，才执行完全清理；该模式也会删除由安装器创建的专用系统用户/用户组，但不会删除同名的预存账号：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/23J1633/server-api/main/install.sh \
+set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error https://raw.githubusercontent.com/23J1633/server-api/main/install.sh \
   | sudo bash -s -- --uninstall --purge
 ```
 
@@ -518,13 +518,13 @@ For SOCKS5, use `socks5h://PROXY_HOST:PROXY_PORT` for all three values. Keep pro
 
 ```bash
 # Preview without changing the server
-curl -fsSL https://raw.githubusercontent.com/23J1633/server-api/main/install.sh | bash -s -- --dry-run
+set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error https://raw.githubusercontent.com/23J1633/server-api/main/install.sh | bash -s -- --dry-run
 
 # Remove service/application but preserve data, keys, and environment
-curl -fsSL https://raw.githubusercontent.com/23J1633/server-api/main/install.sh | sudo bash -s -- --uninstall
+set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error https://raw.githubusercontent.com/23J1633/server-api/main/install.sh | sudo bash -s -- --uninstall
 
 # Explicitly remove all persistent data, keys, environment, and installer-created service user/group
-curl -fsSL https://raw.githubusercontent.com/23J1633/server-api/main/install.sh | sudo bash -s -- --uninstall --purge
+set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error https://raw.githubusercontent.com/23J1633/server-api/main/install.sh | sudo bash -s -- --uninstall --purge
 ```
 
 Append `--dry-run` to either uninstall command to inspect its targets. The purge form is intentionally explicit and irreversible.
