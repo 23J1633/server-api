@@ -240,6 +240,9 @@ install_release() {
   log "Installing production dependencies..."
   npm --prefix "$stage" ci --omit=dev --ignore-scripts --no-audit --no-fund
   chown -R root:root "$stage"
+  # mktemp creates the staging directory as 0700; the service user must be
+  # able to traverse the final application directory after it is moved.
+  chmod 0755 "$stage"
 
   previous="${INSTALL_DIR}.previous"
   systemctl stop "${SERVICE_NAME}.service" >/dev/null 2>&1 || true
@@ -368,9 +371,9 @@ finish() {
   Admin key file : ${admin_file}
   Status         : systemctl status ${SERVICE_NAME}
   Logs           : journalctl -u ${SERVICE_NAME} -f
-  Upgrade        : curl -fsSL ${installer_url} | sudo bash
-  Uninstall      : curl -fsSL ${installer_url} | sudo bash -s -- --uninstall
-  Purge all data : curl -fsSL ${installer_url} | sudo bash -s -- --uninstall --purge
+  Upgrade        : set -o pipefail; curl -fL --connect-timeout 15 --max-time 120 --show-error ${installer_url} | sudo bash
+  Uninstall      : set -o pipefail; curl -fL --connect-timeout 15 --max-time 120 --show-error ${installer_url} | sudo bash -s -- --uninstall
+  Purge all data : set -o pipefail; curl -fL --connect-timeout 15 --max-time 120 --show-error ${installer_url} | sudo bash -s -- --uninstall --purge
 EOF
   if [[ "$SERVER_HOST" == "127.0.0.1" || "$SERVER_HOST" == "localhost" ]]; then
     log "The service listens on loopback. Put Nginx/Caddy/1Panel in front of it for HTTPS/WSS access."
@@ -418,8 +421,8 @@ EOF
   Preserved data  : ${RUNTIME_DATA_DIR}
   Preserved keys  : ${RUNTIME_DATA_DIR}/admin-key.txt
   Preserved env   : ${ENV_FILE}
-  Reinstall       : curl -fsSL ${installer_url} | sudo bash
-  Purge all data  : curl -fsSL ${installer_url} | sudo bash -s -- --uninstall --purge
+  Reinstall       : set -o pipefail; curl -fL --connect-timeout 15 --max-time 120 --show-error ${installer_url} | sudo bash
+  Purge all data  : set -o pipefail; curl -fL --connect-timeout 15 --max-time 120 --show-error ${installer_url} | sudo bash -s -- --uninstall --purge
 EOF
   fi
 }

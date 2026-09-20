@@ -87,7 +87,7 @@ npm start
 Ubuntu、Debian、RHEL、Rocky Linux、AlmaLinux 等使用 systemd 的 Linux 服务器可直接执行：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/23J1633/server-api/main/install.sh | sudo bash
+set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error https://raw.githubusercontent.com/23J1633/server-api/main/install.sh | sudo bash
 ```
 
 该脚本会自动完成 Node.js 22 检查/安装、GitHub 源码下载、生产依赖安装、低权限 `a2s` 账号、systemd 自启、启动健康检查和失败回滚。重复执行同一条命令即可升级；`/var/lib/a2s-server` 中的数据、已登记设备 key 和 `admin-key.txt` 都会保留。成功后终端会显示大型 A2S 字符标识、访问地址、管理员密钥明文、密钥文件位置和维护命令；管理员密钥属于服务器所有者凭据，请勿把终端输出发给不受信任的人。
@@ -117,6 +117,18 @@ sudo systemctl status a2s-server
 sudo journalctl -u a2s-server -f
 sudo cat /var/lib/a2s-server/admin-key.txt
 ```
+
+如果服务器出口必须经过 HTTP(S) 或 SOCKS5 代理，先把代理地址替换为实际值；`curl` 和安装脚本会继承这些环境变量：
+
+```bash
+sudo env \
+  HTTPS_PROXY=http://PROXY_HOST:PROXY_PORT \
+  HTTP_PROXY=http://PROXY_HOST:PROXY_PORT \
+  ALL_PROXY=http://PROXY_HOST:PROXY_PORT \
+  bash -c 'set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error https://raw.githubusercontent.com/23J1633/server-api/main/install.sh | bash'
+```
+
+SOCKS5 代理将三个值改为 `socks5h://PROXY_HOST:PROXY_PORT`。不要把包含用户名或密码的代理命令分享给他人。
 
 卸载服务和程序但保留设备数据、管理员密钥及环境配置：
 
@@ -483,7 +495,7 @@ server-api/
 On a systemd-based Ubuntu, Debian, RHEL, Rocky Linux, or AlmaLinux server:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/23J1633/server-api/main/install.sh | sudo bash
+set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error https://raw.githubusercontent.com/23J1633/server-api/main/install.sh | sudo bash
 ```
 
 The installer validates/provisions Node.js 22, downloads the GitHub release, installs production dependencies, creates the restricted `a2s` account, installs/enables a restartable systemd unit, performs a health check, and rolls back a failed release. Re-run the same command to upgrade while preserving `/var/lib/a2s-server`.
@@ -491,6 +503,18 @@ The installer validates/provisions Node.js 22, downloads the GitHub release, ins
 After success, the terminal prints a large A2S banner, console and Agent endpoints, the complete administrator key, its file path, status/log commands, and upgrade/uninstall commands. Treat that terminal output as sensitive because the administrator key can manage all registered devices.
 
 The default service listens on `127.0.0.1:50443` over HTTP for use behind Nginx, Caddy, or 1Panel TLS termination. Set `A2S_SERVER_HOST=0.0.0.0` only when the network boundary is understood; never expose plaintext control traffic to the public Internet.
+
+If the server must reach GitHub through a proxy, pass the proxy environment to both `curl` and the installer (replace the placeholder with the real endpoint):
+
+```bash
+sudo env \
+  HTTPS_PROXY=http://PROXY_HOST:PROXY_PORT \
+  HTTP_PROXY=http://PROXY_HOST:PROXY_PORT \
+  ALL_PROXY=http://PROXY_HOST:PROXY_PORT \
+  bash -c 'set -o pipefail; curl -4fL --connect-timeout 15 --max-time 120 --show-error https://raw.githubusercontent.com/23J1633/server-api/main/install.sh | bash'
+```
+
+For SOCKS5, use `socks5h://PROXY_HOST:PROXY_PORT` for all three values. Keep proxy credentials private.
 
 ```bash
 # Preview without changing the server

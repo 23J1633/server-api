@@ -16,6 +16,8 @@ test('one-line installer preserves data and configures a restartable systemd ser
     'https://github.com/23J1633/server-api',
     'A2S_SERVER_DATA_DIR',
     'npm --prefix "$stage" ci --omit=dev',
+    'chmod 0755 "$stage"',
+    'set -o pipefail; curl -fL --connect-timeout 15 --max-time 120 --show-error',
     'Restart=always',
     'systemctl enable',
     'wait_for_health',
